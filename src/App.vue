@@ -2,19 +2,24 @@
 import axios from "axios";
 import { ref, computed, watch } from "vue";
 const dark = ref(true);
-const otherGames = ref(false);
 const insult = ref(null);
 const alert = ref(null);
-
+const highscore = ref(null);
+const name = ref(null);
 const game = ref(null);
-axios
-  .get("https://localhost:7253/api/Game/Start")
-  .then((response) => {
-    game.value = response.data;
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+
+const start = async () => {
+  if (name.value !== null) {
+    axios
+      .get(`https://localhost:7253/api/Game/Start?name=${name.value}`)
+      .then((response) => {
+        game.value = response.data;
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+};
 
 const guess = async (higher) => {
   if (higher == null) {
@@ -29,9 +34,16 @@ const guess = async (higher) => {
 };
 
 const restart = async () => {
-  const response = await axios.get(`https://localhost:7253/api/Game/Start`);
+  const response = await axios.get(
+    `https://localhost:7253/api/Game/Start?name=${name.value}`
+  );
   game.value = response.data;
   insult.value = null;
+};
+
+const getHighscore = async () => {
+  const response = await axios.get(`https://localhost:7253/api/Game/Highscore`);
+  highscore.value = response.data;
 };
 
 const computedCardUrl = computed(() => {
@@ -89,12 +101,11 @@ watch(game, (value) => {
         <v-icon>mdi-brightness-4</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-      <v-btn @click="otherGames = !otherGames">Other games</v-btn>
     </v-app-bar>
     <v-main>
       <v-alert v-if="alert" :title="alert.message" :type="alert.type"></v-alert>
       <v-container
-        v-if="!otherGames"
+        v-if="!highscore"
         class="d-flex w-100 h-100 align-center justify-center text-center"
       >
         <div v-if="game && game.deck.count > 0" class="d-flex flex-column align-center">
@@ -112,12 +123,28 @@ watch(game, (value) => {
           <div v-else class="mt-3">
             <h2 class="mt-3" v-if="insult">{{ insult }}</h2>
             <v-btn class="mr-3 my-3" @click="restart" color="blue">Restart</v-btn>
-            <v-btn @click="highscore" color="yellow">View Highscore</v-btn>
+            <v-btn @click="getHighscore" color="yellow">View Highscore</v-btn>
           </div>
         </div>
-        <div v-else>Something went wrong...</div>
+        <div v-else class="w-100 d-flex flex-column align-center">
+          <v-card width="300" color="rgba(0,0,0,0)">
+            <v-card-text>
+              <v-text-field v-model="name" label="Namn"></v-text-field>
+            </v-card-text>
+            <v-btn @click="start">Starta</v-btn>
+          </v-card>
+        </div>
       </v-container>
-      <v-container v-else> Ricky </v-container>
+      <v-container v-else>
+        <v-btn @click="highscore = null" color="yellow" class="my-3">Tillbaka</v-btn>
+        <v-list bg-color="rgba(0,0,0,0)">
+          <v-list-item
+            v-for="(item, index) in highscore"
+            :key="item.id"
+            :title="`${index + 1}: ${item.name}`"
+            :subtitle="`Score: ${item.score}`"
+          ></v-list-item> </v-list
+      ></v-container>
     </v-main>
   </v-app>
 </template>
